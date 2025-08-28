@@ -1,4 +1,10 @@
 export default class InteractiveAreaCreationTools {
+    static customMouseleaveTracker = null;
+
+    static useCustomMouseleaveTracker(tracker) {
+        this.customMouseleaveTracker = tracker;
+    }
+
     static createInteractiveContainer(HTMLType = 'div') {
         const container = document.createElement(HTMLType);
         container.dataset.interactiveAreaElement = true;
@@ -34,8 +40,9 @@ export default class InteractiveAreaCreationTools {
             remove() {this.webElement.remove();}
         }
 
+        //Триггер колбэков focus/unfocus
         if (hoverable) {
-
+            //Обработка наведения на интерактивный элемент и ухода курсора с него
             interactiveArea.webElement.addEventListener('mousemove', (event) => {
                 interactiveArea.clientMouseX = event.clientX;
                 interactiveArea.clientMouseY = event.clientY;
@@ -62,17 +69,29 @@ export default class InteractiveAreaCreationTools {
                     }
                 }
             });
-
-            interactiveArea.webElement.addEventListener('mouseleave', () => {
-                if (interactiveArea.focusedInteractiveElement) {
-                    interactiveArea.unfocusCallback(interactiveArea.focusedInteractiveElement);
-                }
-                interactiveArea.lastFocusedElement = undefined;
-                interactiveArea.focusedElement = undefined;
-                interactiveArea.lastFocusedInteractiveElement = undefined;
-                interactiveArea.focusedInteractiveElement = undefined;
-            });
-
+            //Обработка ухода курсора из интерактивной области
+            if (this.customMouseleaveTracker) {
+                this.customMouseleaveTracker.startTracking(interactiveArea.webElement, () => {
+                    if (interactiveArea.focusedInteractiveElement) {
+                        interactiveArea.unfocusCallback(interactiveArea.focusedInteractiveElement);
+                    }
+                    interactiveArea.lastFocusedElement = undefined;
+                    interactiveArea.focusedElement = undefined;
+                    interactiveArea.lastFocusedInteractiveElement = undefined;
+                    interactiveArea.focusedInteractiveElement = undefined;
+                });
+            } else {
+                interactiveArea.webElement.addEventListener('mouseleave', () => {
+                    if (interactiveArea.focusedInteractiveElement) {
+                        interactiveArea.unfocusCallback(interactiveArea.focusedInteractiveElement);
+                    }
+                    interactiveArea.lastFocusedElement = undefined;
+                    interactiveArea.focusedElement = undefined;
+                    interactiveArea.lastFocusedInteractiveElement = undefined;
+                    interactiveArea.focusedInteractiveElement = undefined;
+                });
+            }
+        //Если наведение не требуется, удалить колбэки и связанныес ними переменные
         } else {
             delete interactiveArea.focusCallback;
             delete interactiveArea.unfocusCallback;
@@ -82,6 +101,7 @@ export default class InteractiveAreaCreationTools {
             delete interactiveArea.lastFocusedInteractiveElement;
         }
 
+        //Триггер колбэка нажатия
         if (clickable) {
             interactiveArea.webElement.addEventListener('click', (event) => {
                 const interactiveElement = event.target.closest('[data-interactive-area-element]');
