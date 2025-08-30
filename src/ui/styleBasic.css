@@ -1,0 +1,34 @@
+:root {
+    --border-size: 2px;
+    --border1-color: rgb(159, 140, 121);
+    --border2-color: rgb(206, 187, 164);
+    --border3-color: rgb(255, 235, 209);
+}
+
+* {
+	margin: 0;
+	padding: 0;
+	box-sizing: border-box;
+}
+
+body{
+    width: 100vw;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: rgb(128, 128, 128);
+    overflow: hidden;
+}
+
+.border1 {
+    border: var(--border-size) solid var(--border1-color);
+    background-color: var(--border2-color);
+    box-shadow: 0px 0px 60px 40px #202020;
+}
+
+.border3{
+    margin-top: var(--border-size);
+    margin-left: var(--border-size);
+    border: var(--border-size) solid var(--border3-color);
+}

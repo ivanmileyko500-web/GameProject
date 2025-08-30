@@ -308,6 +308,10 @@ class Inventory extends InteractiveAreaCreationTools {
     render(container) {
         this.interactiveArea.render(container);
     }
+
+    remove() {
+        this.interactiveArea.remove();
+    }
 }
 
 class Item {
