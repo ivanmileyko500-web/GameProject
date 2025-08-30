@@ -6,11 +6,12 @@ export default class DragManager {
         this.maxZIndex = maxZIndex;
     }
 
-    static getInstance() {
-        if (!DragManager.instance) {
-            DragManager.instance = new DragManager();
+    static getInstance(...args) {
+        if (!this.instance) {
+            this.instance = new this();
+            this.instance.init(...args);
         }
-        return DragManager.instance;
+        return this.instance;
     }
 
     constructor() {
@@ -22,12 +23,13 @@ export default class DragManager {
         this.dragOffsetY = 0;
 
         this.handleMouseMove = this.handleMouseMove.bind(this);
-
-        this.init();
     }
 
     init() {
         document.addEventListener('mousemove', this.handleMouseMove);
+        document.addEventListener('dragstart', (event) => {
+            event.preventDefault();
+        });
     }
 
     handleMouseMove(event) {
@@ -40,7 +42,7 @@ export default class DragManager {
         }
     }
 
-    startDrag(element, dragOffsetX = 0, dragOffsetY = 0) {
+    startDrag(element, {modifyPointerEvents = true, dragOffsetX = 0, dragOffsetY = 0} = {}) {
         this.draggedElement = element;
         this.draggedElementOriginalParent = element.parentElement;
         document.body.appendChild(this.draggedElement);
@@ -48,18 +50,20 @@ export default class DragManager {
         this.dragOffsetX = dragOffsetX;
         this.dragOffsetY = dragOffsetY;
 
-        this.draggedElement.style.pointerEvents = 'none';
         this.draggedElement.style.position = 'absolute';
         this.draggedElement.style.zIndex = DragManager.maxZIndex;
         this.draggedElement.style.left = this.pageX + this.dragOffsetX + 'px';
         this.draggedElement.style.top = this.pageY + this.dragOffsetY + 'px';
+        if (modifyPointerEvents) {
+            this.draggedElement.style.pointerEvents = 'none';
+        }
     }
 
-    cancelDrag() {
-        this.endDrag(this.draggedElementOriginalParent);
+    cancelDrag({modifyPointerEvents = true} = {}) {
+        this.endDrag(this.draggedElementOriginalParent, {modifyPointerEvents});
     }
 
-    endDrag(newParent) {
+    endDrag(newParent, {modifyPointerEvents = true} = {}) {
         if (newParent) {
             this.draggedElement.style.removeProperty('position');
             this.draggedElement.style.removeProperty('z-index');
@@ -67,7 +71,9 @@ export default class DragManager {
             this.draggedElement.style.removeProperty('top');
             newParent.appendChild(this.draggedElement);
         }     
-        this.draggedElement.style.removeProperty('pointer-events');    
+        if (modifyPointerEvents) {
+            this.draggedElement.style.removeProperty('pointer-events');  
+        }  
         this.draggedElement = null;
         this.draggedElementOriginalParent = null;
     }

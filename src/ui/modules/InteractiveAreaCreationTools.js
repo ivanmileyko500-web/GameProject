@@ -5,8 +5,13 @@ export default class InteractiveAreaCreationTools {
         this.customMouseleaveTracker = tracker;
     }
 
-    static createInteractiveContainer(HTMLType = 'div') {
-        const container = document.createElement(HTMLType);
+    static createInteractiveContainer(HTMLData = 'div') {
+        let container;
+        if (HTMLData instanceof Element) {
+            container = HTMLData;
+        } else {
+            container = document.createElement(HTMLData);
+        }
         container.dataset.interactiveAreaElement = true;
         return container;
     }

@@ -6,4 +6,9 @@ MouseleaveTracker: Кастомный трекер события mouseleave. И
 
 InteractiveAreaCreationTools: Статический класс для создания объекта с инкапсулированной логикой отслеживания событий наведения и клика по интерактивным элементам. Создаваемый объект предоставляет переопределяемые колбэки для добавления дальнейшей логики. Опционально использование MouseleaveTracker
 
-DragManager: Базовый класс для DragInventoryManager(TODO). Реализует логику перемещения веб элементов
+DragManager: Базовый класс для DragInventoryManager. Реализует логику перемещения веб элементов
+
+DragAndDrop:
+    InventoryDragManager - наследуется то DragManager, реализует логику перемещения предметов между инвентарями
+    Inventory - наследуется от InteractiveAreaCreationTools, хранит предметы
+    Item - хранит информацию о предмете
