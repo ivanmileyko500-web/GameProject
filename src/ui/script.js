@@ -1,5 +1,5 @@
-import {InventoryDragManager, Inventory, Item} from './modules/DragAndDrop.js';
-import InteractiveAreaCreationTools from './modules/InteractiveAreaCreationTools.js';
+import {InventoryDragManager, Inventory, Item} from './DragAndDrop.js';
+import InteractiveAreaCreationTools from './InteractiveAreaCreationTools.js';
 
 class MultiInventory {
     static switchButtonBackgroundColor = 'grey';
@@ -145,7 +145,7 @@ resources.render(document.getElementById('column1-container2'));
 const slotExample = document.createElement('div');
 slotExample.style.width = '28px';
 slotExample.style.height = '28px';
-slotExample.style.backgroundImage = 'url("images/slot.png")';
+slotExample.style.backgroundImage = 'url("slot.png")';
 slotExample.style.padding = '6px';
 
 const manager = InventoryDragManager.getInstance('mousedown');
@@ -155,51 +155,132 @@ const invMesh1 = Inventory.createInventoryUI(14, 7, slotExample);
 const inventory1 = new Inventory(manager, invMesh1);
 const invMesh2 = Inventory.createInventoryUI(15, 7, slotExample);
 const inventory2 = new Inventory(manager, invMesh2);
-const invMesh3 = Inventory.createInventoryUI(10, 7, slotExample);
-const inventory3 = new Inventory(manager, invMesh3);
 const multiInventory = new MultiInventory();
 multiInventory.addInventory('Inventory 1', inventory1);
 multiInventory.addInventory('Inventory 2', inventory2);
-multiInventory.addInventory('Inventory 3', inventory3);
 multiInventory.render(genomContainer);
 
+class BuildingManager extends InteractiveAreaCreationTools{
+    static createBasicBuilding(buildingName) {
+        const building = {
+            previewUI: InteractiveAreaCreationTools.createInteractiveContainer('div'),
+            interfaceUI: document.createElement('div'),
+            removeUpgradeButton: () => {},
+            upgradeCallback: () => {},
+            returnCallback: () => {}
+        }
 
-const entitiesContainer = document.createElement('div');
-entitiesContainer.style.width = '100%';
-entitiesContainer.style.height = '100%';
-entitiesContainer.style.display = 'grid';
-entitiesContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
-entitiesContainer.style.gridTemplateRows = 'repeat(3, 1fr)';
-entitiesContainer.style.gap = '25px';
-entitiesContainer.style.padding = '25px';
+        building.previewUI.dataset.buildingName = buildingName;
+        building.previewUI.style.width = '100%';
+        building.previewUI.style.height = '100%';
+        building.previewUI.style.backgroundColor = 'white';
+        building.previewUI.style.display = 'flex';
+        building.previewUI.style.justifyContent = 'center';
+        building.previewUI.style.alignItems = 'center';
 
-const entitiesHtml = {};
-entitiesHtml.biomassFabricator = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.biomassFabricator.dataset.id = 'biomassFabricator';
-entitiesHtml.entity2 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity2.dataset.id = 'entity2';
-entitiesHtml.entity3 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity3.dataset.id = 'entity3';
-entitiesHtml.entity4 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity4.dataset.id = 'entity4';
-entitiesHtml.entity5 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity5.dataset.id = 'entity5';
-entitiesHtml.entity6 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity6.dataset.id = 'entity6';
-entitiesHtml.entity7 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity7.dataset.id = 'entity7';
-entitiesHtml.entity8 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity8.dataset.id = 'entity8';
-entitiesHtml.entity9 = InteractiveAreaCreationTools.createInteractiveContainer('div');
-entitiesHtml.entity9.dataset.id = 'entity9';
+        building.interfaceUI.style.width = '100%';
+        building.interfaceUI.style.height = '100%';
+        building.interfaceUI.style.backgroundColor = 'red';
+        building.interfaceUI.style.display = 'flex';
+        building.interfaceUI.style.justifyContent = 'center';
+        building.interfaceUI.style.alignItems = 'center';
 
-for (let entityName in entitiesHtml) {
-    entitiesContainer.appendChild(entitiesHtml[entityName]);
-    entitiesHtml[entityName].style.width = '100%';
-    entitiesHtml[entityName].style.height = '100%';
-    entitiesHtml[entityName].style.backgroundColor = 'white';
+        const returnButton = document.createElement('button');
+        returnButton.textContent = 'Return';
+        returnButton.type = 'button';
+        returnButton.dataset.action = 'return';
+        returnButton.style.width = '80px';
+        returnButton.style.height = '40px';
+        returnButton.style.backgroundColor = 'gray';
+        returnButton.style.color = 'aliceblue';
+
+        const upgradeButton = document.createElement('button');
+        upgradeButton.textContent = 'Upgrade';
+        upgradeButton.type = 'button';
+        upgradeButton.dataset.action = 'upgrade';
+        upgradeButton.style.width = '80px';
+        upgradeButton.style.height = '40px';
+        upgradeButton.style.backgroundColor = 'gray';
+        upgradeButton.style.color = 'aliceblue';
+
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.width = '200px';
+        buttonsContainer.style.height = '100px';
+        buttonsContainer.style.display = 'flex';
+        buttonsContainer.style.justifyContent = 'space-between';
+        buttonsContainer.appendChild(returnButton);
+        buttonsContainer.appendChild(upgradeButton);
+        building.interfaceUI.appendChild(buttonsContainer);
+
+        buttonsContainer.addEventListener('click', (e) => {
+            if (e.target.dataset.action === 'return') building.returnCallback();
+            if (e.target.dataset.action === 'upgrade') building.upgradeCallback();
+        });
+
+        building.removeUpgradeButton = () => {
+            upgradeButton.remove();
+        }
+
+        return building;
+    }
+
+    constructor() {
+        super();
+
+        this.renderContainer;
+        this.buildingsPreviewInteractiveArea;
+        this.buildingPreviewUIContainers = {};
+        this.buildings = {};
+
+        this.init();
+    }
+
+    init() {
+        const buildingsContainer = document.createElement('div');
+        buildingsContainer.style.width = '100%';
+        buildingsContainer.style.height = '100%';
+        buildingsContainer.style.display = 'grid';
+        buildingsContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
+        buildingsContainer.style.gridTemplateRows = 'repeat(3, 1fr)';
+        buildingsContainer.style.gap = '25px';
+        buildingsContainer.style.padding = '25px';
+        
+        const buildingNames = ['mutantUtilizer', 'biomassFabricator', 'geneticDisassembler', 'geneticWorkbench', 'sponsorBranch', 'sampleStorage', 'mutantCapsule', 'DNARegenerator', 'midasMachine'];
+        for (let buildingName of buildingNames) {
+            this.buildingPreviewUIContainers[buildingName] = document.createElement('div');
+            this.buildingPreviewUIContainers[buildingName].style.width = '100%';
+            this.buildingPreviewUIContainers[buildingName].style.height = '100%';
+            buildingsContainer.appendChild(this.buildingPreviewUIContainers[buildingName]);
+
+            this.buildings[buildingName] = BuildingManager.createBasicBuilding(buildingName);
+            this.buildings[buildingName].previewUI.textContent = buildingName; //TODO убрать, добавить картинку
+            this.buildings[buildingName].upgradeCallback = () => {} //TODO добавить логику улучшения
+            this.buildings[buildingName].returnCallback = () => { 
+                this.displayBuildingsPreviewUI();
+            }
+            this.buildingPreviewUIContainers[buildingName].appendChild(this.buildings[buildingName].previewUI);
+        }
+
+        this.buildingsPreviewInteractiveArea = InteractiveAreaCreationTools.createInteractiveArea(buildingsContainer);
+        this.buildingsPreviewInteractiveArea.focusCallback = (element) => {} //TODO добавить вывод описания
+        this.buildingsPreviewInteractiveArea.clickCallback = (element) => {this.displayBuildingInterfaceUI(element.dataset.buildingName)}
+    }
+
+    displayBuildingInterfaceUI(buildingName) {
+        this.buildingsPreviewInteractiveArea.remove();
+        this.renderContainer.appendChild(this.buildings[buildingName].interfaceUI);
+    }
+
+    displayBuildingsPreviewUI() {
+        this.renderContainer.innerHTML = '';
+        this.buildingsPreviewInteractiveArea.render(this.renderContainer);
+    }
+
+    render(container) {
+        this.renderContainer = container;
+        this.buildingsPreviewInteractiveArea.render(container);
+    }
 }
 
-const entitiesInteractiveArea = InteractiveAreaCreationTools.createInteractiveArea(entitiesContainer);
-entitiesInteractiveArea.clickCallback = (element) => console.log(element.dataset.id);
-entitiesInteractiveArea.render(document.getElementById('column3')); 
+const buildingManager = new BuildingManager();
+buildingManager.render(document.getElementById('column3'));
