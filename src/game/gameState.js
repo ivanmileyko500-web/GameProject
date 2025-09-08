@@ -25,7 +25,7 @@ class GameState {
 
         //Инициализация зданий
         this.buildings['sampleStorage'] = new SampleStorage(this, parsedBuildingsData['sampleStorage'].id, parsedBuildingsData['sampleStorage'].level, parsedBuildingsData['sampleStorage'].assignedSlots);
-        this.entitiesToUpdate.concat(Object.keys(this.buildings));
+        this.entitiesToUpdate = this.entitiesToUpdate.concat(Object.keys(this.buildings));
 
         //Инициализация ресурсов
         let resourcesData = await this.databaseManager.getData('resources_data');
