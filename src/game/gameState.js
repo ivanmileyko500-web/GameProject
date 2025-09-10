@@ -1,6 +1,8 @@
+const GameConstants = require('../game/gameConstants');
 const databaseManager = require('../data/databaseManager');
 const SampleStorage = require('../buildings/sampleStorage');
 
+//TODO добавить сохранение данных в БД
 class GameState {
     constructor() {
         this.databaseManager = databaseManager;
@@ -24,7 +26,9 @@ class GameState {
         }
 
         //Инициализация зданий
-        this.buildings['sampleStorage'] = new SampleStorage(this, parsedBuildingsData['sampleStorage'].id, parsedBuildingsData['sampleStorage'].level, parsedBuildingsData['sampleStorage'].assignedSlots);
+        if (parsedBuildingsData['sampleStorage'].isConstructed) {
+            this.buildings['sampleStorage'] = new SampleStorage(this, 'sampleStorage', parsedBuildingsData['sampleStorage'].level, parsedBuildingsData['sampleStorage'].assignedSlots);
+        }
         this.entitiesToUpdate = this.entitiesToUpdate.concat(Object.keys(this.buildings));
 
         //Инициализация ресурсов
@@ -32,10 +36,13 @@ class GameState {
         for (let i = 0; i < resourcesData.length; i++) {
             this.resources[resourcesData[i].name] = {
                 count: resourcesData[i].count,
+                capacity: GameConstants.basicResourcesCapacity[resourcesData[i].name],
                 id: resourcesData[i].id
             };
         }
-        this.updateResourceCapacity();
+        if (this.buildings['sampleStorage']) {
+            this.updateResourceCapacity();
+        }
 
         //Инициализация предметов
         // let itemsData = await this.databaseManager.getData('items_data');
@@ -106,6 +113,31 @@ class GameState {
         } else {
             this.buildings[buildingName][methodName](...args);
         }
+    }
+
+    constructBuilding(buildingName) {
+        const checkAndTakeResources = (buildingClassName) => {
+            for (let resource in buildingClassName.levelData[1].upgradeCost) {
+                if (this.resources[resource].count < buildingClassName.levelData[1].upgradeCost[resource]) {
+                    return false;
+                }
+            }
+            for (let resource in buildingClassName.levelData[1].upgradeCost) {
+                this.takeResource(resource, buildingClassName.levelData[1].upgradeCost[resource]);
+            }
+            return true;
+        }
+        const constructBuildingMap = {
+            sampleStorage: () => {
+                if (checkAndTakeResources(SampleStorage)) {
+                    this.buildings['sampleStorage'] = new SampleStorage(this, 'sampleStorage', 1, {});
+                    this.entitiesToUpdate.push('sampleStorage');
+                    this.updateResourceCapacity();
+                }
+            },
+        }
+
+        constructBuildingMap[buildingName]();
     }
 
     updateResourceCapacity() {
