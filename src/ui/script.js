@@ -1,5 +1,7 @@
-import {InventoryDragManager, Inventory, Item} from './DragAndDrop.js';
-import InteractiveAreaCreationTools from './InteractiveAreaCreationTools.js';
+const { ipcRenderer } = require('electron');
+import {InventoryDragManager, Inventory, Item} from './modules/DragAndDrop.js';
+import InteractiveAreaCreationTools from './modules/InteractiveAreaCreationTools.js';
+import MouseleaveTracker from './modules/MouseleaveTracker.js';
 
 class MultiInventory {
     static switchButtonBackgroundColor = 'grey';
@@ -88,8 +90,282 @@ class MultiInventory {
         this.renderCurrentInventory();
     }
 }
-    
 
+class ViewSwitcher {
+    constructor(renderContainer) {
+        this.renderContainer = renderContainer;
+        this.currentViewIndex = 0;
+        this.isRendered = false;
+        this.views = [];
+    }
+
+    addView(view) {
+        this.views.push(view);
+    }
+
+    removeView(index) {
+        if (index === this.currentViewIndex) {
+            if (this.isRendered) {
+                this.switchView()
+            } else {
+                this.currentViewIndex = 0;
+            }
+        }
+        this.views[index].remove();
+        this.views.splice(index, 1);
+    }
+
+    switchView(index) {
+        if (!index) {
+            index = (this.currentViewIndex + 1) % this.views.length;
+        }
+        if (this.isRendered) {
+            this.views[this.currentViewIndex].remove();
+            this.currentViewIndex = index;
+            this.renderContainer.appendChild(this.views[this.currentViewIndex]);
+        } else {
+            this.currentViewIndex = index;
+        }
+    }
+
+    render() {
+        this.renderContainer.appendChild(this.views[this.currentViewIndex]);
+        this.isRendered = true;
+    }
+
+    remove() {
+        this.views[this.currentViewIndex].remove();
+        this.isRendered = false;
+    }
+}
+
+class BuildingManager extends InteractiveAreaCreationTools {
+    constructor(viewSwitcher, gridSize, buildingsUiData) {
+        super();
+        this.viewSwitcher = viewSwitcher;
+        this.gridSize = gridSize;
+        this.buildings = {};
+        this.buildingContainers = {};
+
+        this.init(buildingsUiData);
+    }
+
+    init(buildingsUiData) {
+        function createGrid(rows, cols) {
+            const grid = document.createElement('div');
+            grid.style.width = '100%';
+            grid.style.height = '100%';
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+            grid.style.gridTemplateRows = `repeat(${rows}, 1fr)`;
+            grid.style.gap = '10px';
+            grid.style.padding = '10px';
+            return grid;
+        }
+
+        const grid = createGrid(this.gridSize[0], this.gridSize[1]);
+        for (let [buildingName, buildingImagePath] of buildingsUiData) {
+            const buildingContainer = BuildingManager.createInteractiveContainer('div');
+            buildingContainer.dataset.buildingName = buildingName;
+            buildingContainer.style.width = '100%';
+            buildingContainer.style.height = '100%';
+            buildingContainer.style.backgroundImage = `url(${buildingImagePath})`;
+            buildingContainer.style.backgroundBlendMode = 'multiply';
+            buildingContainer.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+            buildingContainer.style.backgroundSize = 'cover';
+            buildingContainer.style.backgroundPosition = 'center';
+            this.buildingContainers[buildingName] = buildingContainer;
+            grid.appendChild(buildingContainer);   
+        }
+
+        const interactiveGrid = BuildingManager.createInteractiveArea(grid);
+        interactiveGrid.clickCallback = (element) => {
+            if (element.dataset.buildingName) {
+                if (this.buildings[element.dataset.buildingName]) {
+                    this.displayBuildingInterface(element.dataset.buildingName);
+                } else {
+                    ipcRenderer.send('constructBuilding', element.dataset.buildingName);
+                }
+            }
+        };
+        //TODO добавить вывод и скрытие описания
+        interactiveGrid.focusCallback = (element) => {};
+        interactiveGrid.unfocusCallback = (element) => {};
+        
+        this.viewSwitcher.addView(interactiveGrid.webElement);
+        this.viewSwitcher.render();
+    }
+
+    addBuilding(building) {
+        building.returnCallback = () => this.displayBuildingsGrid();
+        this.buildings[building.buildingName] = building;
+        this.buildingContainers[building.buildingName].appendChild(building.previewUI);
+    }
+
+    displayBuildingInterface(buildingName) {
+        this.viewSwitcher.addView(this.buildings[buildingName].interfaceUI);
+        this.viewSwitcher.switchView();
+    }
+        
+    displayBuildingsGrid() {
+        this.viewSwitcher.removeView(1);
+    }
+
+    updateAll(data) {
+        for (let buildingName in this.buildings) {
+            this.buildings[buildingName].update(data[buildingName]);
+        }
+    }
+
+    updateTarget(data) {
+        this.buildings[data.buildingName].update(data.data);
+    }
+}
+
+class Building {
+    constructor(buildingName, data, previewImagePath) {
+        this.buildingName = buildingName;
+        this.data = data;
+        this.previewUI = document.createElement('div');
+        this.interfaceUI = document.createElement('div');
+        this.upgradeButton = document.createElement('button');
+        this.callMethod = (methodName, args) => {
+            ipcRenderer.send('callBuildingMethod', this.buildingName, methodName, args);
+        };
+        this.returnCallback = () => {};
+
+        this.init(previewImagePath);
+    }
+
+    init(previewImagePath) {
+        this.previewUI.style.pointerEvents = 'none';
+        this.previewUI.style.width = '100%';
+        this.previewUI.style.height = '100%';
+        this.previewUI.style.backgroundColor = 'white';
+        this.previewUI.style.display = 'flex';
+        this.previewUI.style.justifyContent = 'center';
+        this.previewUI.style.alignItems = 'center';
+        this.previewUI.style.backgroundImage = `url(${previewImagePath})`;
+        this.previewUI.style.backgroundSize = 'cover';
+        this.previewUI.style.backgroundPosition = 'center';
+
+        this.interfaceUI.style.width = '100%';
+        this.interfaceUI.style.height = '100%';
+        this.interfaceUI.style.backgroundColor = 'red';
+        this.interfaceUI.style.display = 'flex';
+        this.interfaceUI.style.flexDirection = 'column';
+
+        this.upgradeButton.textContent = 'Upgrade';
+        this.upgradeButton.type = 'button';
+        this.upgradeButton.style.width = '80px';
+        this.upgradeButton.style.height = '40px';
+        this.upgradeButton.style.backgroundColor = 'gray';
+        this.upgradeButton.style.color = 'aliceblue';
+        this.upgradeButton.addEventListener('click', () => {
+            this.callMethod('upgrade');
+        })
+
+        const returnButton = document.createElement('button');
+        returnButton.textContent = 'Return';
+        returnButton.type = 'button';
+        returnButton.style.width = '80px';
+        returnButton.style.height = '40px';
+        returnButton.style.backgroundColor = 'gray';
+        returnButton.style.color = 'aliceblue';
+
+        returnButton.addEventListener('click', () => {
+            this.returnCallback();
+        });
+        this.interfaceUI.appendChild(returnButton);
+    }
+}
+
+class SampleStorage extends Building {
+    constructor(data, previewImagePath) {
+        super('sampleStorage', data, previewImagePath);
+        this.storageSlotsContainer = document.createElement("div");
+        this.storageSlots = [];
+
+        this.setupInterface();
+    }
+
+    updateDynamic(elementName, data = this.data) {
+        const updateDynamicMap = {
+            storageSlots: () => {
+                while (this.storageSlotsContainer.firstChild) {
+                    this.storageSlotsContainer.removeChild(this.storageSlotsContainer.firstChild);
+                }
+                this.storageSlots = [];
+
+                const resourceTypes = Object.keys(data.currentLevelData.basicCapacity);
+                for (let i = 0; i < data.currentLevelData.additionalCapacitySlots; i++) {
+                    const slot = document.createElement("select");
+                    this.storageSlots.push(slot);
+                    slot.style.width = "120px";
+                    slot.style.height = "40px";
+                    const emptyOption = document.createElement("option");
+                    emptyOption.value = "";
+                    emptyOption.innerHTML = "";
+                    slot.appendChild(emptyOption);
+                    for (let i = 0; i < resourceTypes.length; i++) {
+                        const option = document.createElement("option");
+                        option.value = resourceTypes[i];
+                        option.innerHTML = resourceTypes[i];
+                        slot.appendChild(option);
+                    }
+                    if (data.assignedSlots[i + 1]) {
+                        slot.value = data.assignedSlots[i + 1];
+                    }
+                    this.storageSlotsContainer.appendChild(slot);
+                }
+            }
+        }
+
+        updateDynamicMap[elementName]();
+    }
+
+    setupInterface() {
+        if (this.data.nextLevelData) this.interfaceUI.appendChild(this.upgradeButton);
+
+        this.updateDynamic("storageSlots");
+        this.interfaceUI.appendChild(this.storageSlotsContainer);
+
+        const saveButton = document.createElement("button");
+        saveButton.type = "button";
+        saveButton.innerHTML = "Save";
+        saveButton.style.width = "80px";
+        saveButton.style.height = "40px";
+        saveButton.style.backgroundColor = "gray";
+        saveButton.style.color = "aliceblue";
+        saveButton.dataset.action = "assignSlots";
+        saveButton.addEventListener("click", () => {
+            const slotValues = this.storageSlots.map((slot) => slot.value);
+            this.callMethod("assignSlots", [slotValues]);
+        });
+        this.interfaceUI.appendChild(saveButton);
+    }
+
+    update(data) {
+        if (this.data.nextLevelData && !data.nextLevelData) {
+            this.upgradeButton.remove();
+        }
+        if (this.data.currentLevelData.additionalCapacitySlots !== data.currentLevelData.additionalCapacitySlots) {
+            this.updateDynamic("storageSlots", data);
+        }
+        this.data = data;
+    }
+}
+
+class MutantUtilizer extends Building {}
+class BiomassFabricator extends Building {}
+class GeneticDisassembler extends Building {}
+class GeneticWorkbench extends Building {}
+class SponsorBranch extends Building {}
+class MutantCapsule extends Building {}
+class DNARegenerator extends Building {}
+class MidasMachine extends Building {}
+    
+// TODO сделать финальный вариант графики, вынести в html css
 const resourcesContainer = document.createElement('div');
 resourcesContainer.style.width = '100%';
 resourcesContainer.style.height = '100%';
@@ -129,28 +405,41 @@ const resources = {
     render(container) {
         container.appendChild(this.resourcesContainer);
     },
-    setResource(resourceName, count) {
-        this.resourcesHtml[resourceName].textContent = count;
+    setResource(resourceName, count, max = null) {
+        if (max) {
+            this.resourcesHtml[resourceName].textContent = `${count}/${max}`; 
+        } else {
+            this.resourcesHtml[resourceName].textContent = count; 
+        }
+    },
+    update(resourcesData) {
+        for (const resource in resourcesData) {
+            this.setResource(resource, resourcesData[resource]['count'], resourcesData[resource]['max']);
+        }
     }
 }
 
-resources.setResource('gold', 100);
-resources.setResource('glory', 15);
-resources.setResource('biomass', 300);
-resources.setResource('hemosine', 70);
-resources.setResource('dermalit', 120);
-resources.setResource('nucleus', 10);
+const windowLoading = {
+    itemsLoaded: false,
+    buildingsLoaded: false,
+    windowLoaded: false,
+
+    checkAndInit() {
+        if (this.itemsLoaded && this.buildingsLoaded && this.windowLoaded) {
+            ipcRenderer.send('ready');
+        }
+    }
+}
+
 resources.render(document.getElementById('column1-container2'));
 
 const slotExample = document.createElement('div');
 slotExample.style.width = '28px';
 slotExample.style.height = '28px';
-slotExample.style.backgroundImage = 'url("slot.png")';
+slotExample.style.backgroundImage = 'url("images/slot.png")';
 slotExample.style.padding = '6px';
-
 const manager = InventoryDragManager.getInstance('mousedown');
 const genomContainer = document.getElementById('column2');
-
 const invMesh1 = Inventory.createInventoryUI(14, 7, slotExample);
 const inventory1 = new Inventory(manager, invMesh1);
 const invMesh2 = Inventory.createInventoryUI(15, 7, slotExample);
@@ -160,127 +449,76 @@ multiInventory.addInventory('Inventory 1', inventory1);
 multiInventory.addInventory('Inventory 2', inventory2);
 multiInventory.render(genomContainer);
 
-class BuildingManager extends InteractiveAreaCreationTools{
-    static createBasicBuilding(buildingName) {
-        const building = {
-            previewUI: InteractiveAreaCreationTools.createInteractiveContainer('div'),
-            interfaceUI: document.createElement('div'),
-            removeUpgradeButton: () => {},
-            upgradeCallback: () => {},
-            returnCallback: () => {}
-        }
+const buildingNames = [
+    'mutantUtilizer', 
+    'biomassFabricator', 
+    'geneticDisassembler', 
+    'geneticWorkbench', 
+    'sponsorBranch', 
+    'sampleStorage', 
+    'mutantCapsule', 
+    'DNARegenerator', 
+    'midasMachine'
+];
+const buildingImagesPaths = [
+    'images/placeholder.png', 
+    'images/placeholder.png',
+    'images/placeholder.png',
+    'images/placeholder.png',
+    'images/placeholder.png',
+    'images/placeholder.png',
+    'images/placeholder.png',
+    'images/placeholder.png',
+    'images/placeholder.png'
+]
+const buildingsUiData = new Map(buildingNames.map((buildingName, i) => [buildingName, buildingImagesPaths[i]]));
+const buildingClasses = {
+    mutantUtilizer: MutantUtilizer,
+    biomassFabricator: BiomassFabricator,
+    geneticDisassembler: GeneticDisassembler,
+    geneticWorkbench: GeneticWorkbench,
+    sponsorBranch: SponsorBranch,
+    sampleStorage: SampleStorage,
+    mutantCapsule: MutantCapsule,
+    DNARegenerator: DNARegenerator,
+    midasMachine: MidasMachine
+};
 
-        building.previewUI.dataset.buildingName = buildingName;
-        building.previewUI.style.width = '100%';
-        building.previewUI.style.height = '100%';
-        building.previewUI.style.backgroundColor = 'white';
-        building.previewUI.style.display = 'flex';
-        building.previewUI.style.justifyContent = 'center';
-        building.previewUI.style.alignItems = 'center';
+BuildingManager.useCustomMouseleaveTracker(MouseleaveTracker)
+const viewSwitcher = new ViewSwitcher(document.getElementById('column3'));
+const buildingManager = new BuildingManager(viewSwitcher, [3, 3], buildingsUiData);
 
-        building.interfaceUI.style.width = '100%';
-        building.interfaceUI.style.height = '100%';
-        building.interfaceUI.style.backgroundColor = 'red';
-        building.interfaceUI.style.display = 'flex';
-        building.interfaceUI.style.justifyContent = 'center';
-        building.interfaceUI.style.alignItems = 'center';
+ipcRenderer.on('updateAll', (event, data) => {
+    buildingManager.updateAll(data);
+    resources.update(data.resources);
+});
 
-        const returnButton = document.createElement('button');
-        returnButton.textContent = 'Return';
-        returnButton.type = 'button';
-        returnButton.dataset.action = 'return';
-        returnButton.style.width = '80px';
-        returnButton.style.height = '40px';
-        returnButton.style.backgroundColor = 'gray';
-        returnButton.style.color = 'aliceblue';
+ipcRenderer.on('updateTarget', (event, data) => {
+    buildingManager.updateTarget(data);
+    resources.update(data.resources);
+});
 
-        const upgradeButton = document.createElement('button');
-        upgradeButton.textContent = 'Upgrade';
-        upgradeButton.type = 'button';
-        upgradeButton.dataset.action = 'upgrade';
-        upgradeButton.style.width = '80px';
-        upgradeButton.style.height = '40px';
-        upgradeButton.style.backgroundColor = 'gray';
-        upgradeButton.style.color = 'aliceblue';
+ipcRenderer.on('constructBuilding', (event, data) => {
+    buildingManager.addBuilding(new buildingClasses[data.buildingName](data.data, buildingsUiData.get(data.buildingName)));
+    resources.update(data.resources);
+});
 
-        const buttonsContainer = document.createElement('div');
-        buttonsContainer.style.width = '200px';
-        buttonsContainer.style.height = '100px';
-        buttonsContainer.style.display = 'flex';
-        buttonsContainer.style.justifyContent = 'space-between';
-        buttonsContainer.appendChild(returnButton);
-        buttonsContainer.appendChild(upgradeButton);
-        building.interfaceUI.appendChild(buttonsContainer);
+ipcRenderer.invoke('fetchItemsData').then(data => {
+    //Регистрация предметов
+    windowLoading.itemsLoaded = true;
+    windowLoading.checkAndInit();
+});
 
-        buttonsContainer.addEventListener('click', (e) => {
-            if (e.target.dataset.action === 'return') building.returnCallback();
-            if (e.target.dataset.action === 'upgrade') building.upgradeCallback();
-        });
-
-        building.removeUpgradeButton = () => {
-            upgradeButton.remove();
-        }
-
-        return building;
+ipcRenderer.invoke('fetchBuildingsData').then(data => {
+    //Регистрация зданий
+    for (let buildingName in data) {
+        buildingManager.addBuilding(new buildingClasses[buildingName](data[buildingName], buildingsUiData.get(buildingName)));
     }
+    windowLoading.buildingsLoaded = true;
+    windowLoading.checkAndInit();
+});
 
-    constructor() {
-        super();
-
-        this.renderContainer;
-        this.buildingsPreviewInteractiveArea;
-        this.buildingPreviewUIContainers = {};
-        this.buildings = {};
-
-        this.init();
-    }
-
-    init() {
-        const buildingsContainer = document.createElement('div');
-        buildingsContainer.style.width = '100%';
-        buildingsContainer.style.height = '100%';
-        buildingsContainer.style.display = 'grid';
-        buildingsContainer.style.gridTemplateColumns = 'repeat(3, 1fr)';
-        buildingsContainer.style.gridTemplateRows = 'repeat(3, 1fr)';
-        buildingsContainer.style.gap = '25px';
-        buildingsContainer.style.padding = '25px';
-        
-        const buildingNames = ['mutantUtilizer', 'biomassFabricator', 'geneticDisassembler', 'geneticWorkbench', 'sponsorBranch', 'sampleStorage', 'mutantCapsule', 'DNARegenerator', 'midasMachine'];
-        for (let buildingName of buildingNames) {
-            this.buildingPreviewUIContainers[buildingName] = document.createElement('div');
-            this.buildingPreviewUIContainers[buildingName].style.width = '100%';
-            this.buildingPreviewUIContainers[buildingName].style.height = '100%';
-            buildingsContainer.appendChild(this.buildingPreviewUIContainers[buildingName]);
-
-            this.buildings[buildingName] = BuildingManager.createBasicBuilding(buildingName);
-            this.buildings[buildingName].previewUI.textContent = buildingName; //TODO убрать, добавить картинку
-            this.buildings[buildingName].upgradeCallback = () => {} //TODO добавить логику улучшения
-            this.buildings[buildingName].returnCallback = () => { 
-                this.displayBuildingsPreviewUI();
-            }
-            this.buildingPreviewUIContainers[buildingName].appendChild(this.buildings[buildingName].previewUI);
-        }
-
-        this.buildingsPreviewInteractiveArea = InteractiveAreaCreationTools.createInteractiveArea(buildingsContainer);
-        this.buildingsPreviewInteractiveArea.focusCallback = (element) => {} //TODO добавить вывод описания
-        this.buildingsPreviewInteractiveArea.clickCallback = (element) => {this.displayBuildingInterfaceUI(element.dataset.buildingName)}
-    }
-
-    displayBuildingInterfaceUI(buildingName) {
-        this.buildingsPreviewInteractiveArea.remove();
-        this.renderContainer.appendChild(this.buildings[buildingName].interfaceUI);
-    }
-
-    displayBuildingsPreviewUI() {
-        this.renderContainer.innerHTML = '';
-        this.buildingsPreviewInteractiveArea.render(this.renderContainer);
-    }
-
-    render(container) {
-        this.renderContainer = container;
-        this.buildingsPreviewInteractiveArea.render(container);
-    }
+window.onload = () => {
+    windowLoading.windowLoaded = true;
+    windowLoading.checkAndInit();
 }
-
-const buildingManager = new BuildingManager();
-buildingManager.render(document.getElementById('column3'));
