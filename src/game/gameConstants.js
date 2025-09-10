@@ -3,9 +3,12 @@ class GameConstants {
     static windowSizes = {
         index: {width: 1600, height: 750},
     };
-    static windowsPathMapping = {
-        index: 'index.html',
-    };
+    static basicResourcesCapacity = {
+        biomass: 300,
+        hemosine: 50,
+        dermalit: 50,
+        nucleus: 50
+    }
 }
 
 module.exports = GameConstants;
