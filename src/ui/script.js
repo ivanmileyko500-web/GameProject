@@ -229,7 +229,7 @@ class Building {
         this.previewUI = document.createElement('div');
         this.interfaceUI = document.createElement('div');
         this.upgradeButton = document.createElement('button');
-        this.callMethod = (methodName, args) => {
+        this.callMethod = (methodName, args = []) => {
             ipcRenderer.send('callBuildingMethod', this.buildingName, methodName, args);
         };
         this.returnCallback = () => {};
@@ -356,8 +356,42 @@ class SampleStorage extends Building {
     }
 }
 
+class BiomassFabricator extends Building {
+    constructor(data, previewImagePath) {
+        super('biomassFabricator', data, previewImagePath);
+        this.biomassCounter = document.createElement('p');
+
+        this.setupInterface();
+    }
+
+    setupInterface() {
+        if (this.data.nextLevelData) this.interfaceUI.appendChild(this.upgradeButton);
+        this.interfaceUI.appendChild(this.biomassCounter);
+
+        const collectButton = document.createElement("button");
+        collectButton.type = "button";
+        collectButton.innerHTML = "Collect";
+        collectButton.style.width = "80px";
+        collectButton.style.height = "40px";
+        collectButton.style.backgroundColor = "gray";
+        collectButton.style.color = "aliceblue";
+        collectButton.dataset.action = "collect";
+        collectButton.addEventListener("click", () => {
+            this.callMethod("collect");
+        });
+        this.interfaceUI.appendChild(collectButton);
+    }
+
+    update(data) {
+        if (this.data.nextLevelData && !data.nextLevelData) {
+            this.upgradeButton.remove();
+        }
+        this.biomassCounter.textContent = `${data.storedBiomass}/${data.currentLevelData.maxBiomass}`;
+        this.data = data;
+    }
+}
+
 class MutantUtilizer extends Building {}
-class BiomassFabricator extends Building {}
 class GeneticDisassembler extends Building {}
 class GeneticWorkbench extends Building {}
 class SponsorBranch extends Building {}

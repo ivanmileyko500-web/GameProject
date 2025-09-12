@@ -1,6 +1,7 @@
 const GameConstants = require('../game/gameConstants');
 const databaseManager = require('../data/databaseManager');
 const SampleStorage = require('../buildings/sampleStorage');
+const BiomassFabricator = require('../buildings/biomassFabricator');
 
 //TODO добавить сохранение данных в БД
 class GameState {
@@ -26,6 +27,7 @@ class GameState {
         }
 
         //Инициализация зданий
+        this.buildings['biomassFabricator'] = new BiomassFabricator(this, 'biomassFabricator', parsedBuildingsData['biomassFabricator'].level, parsedBuildingsData['biomassFabricator'].storedBiomass);
         if (parsedBuildingsData['sampleStorage'].isConstructed) {
             this.buildings['sampleStorage'] = new SampleStorage(this, 'sampleStorage', parsedBuildingsData['sampleStorage'].level, parsedBuildingsData['sampleStorage'].assignedSlots);
         }
@@ -73,6 +75,7 @@ class GameState {
             return preparedData;
             },
             sampleStorage: () => {return {level: this.buildings['sampleStorage'].level, assignedSlots: this.buildings['sampleStorage'].assignedSlots, currentLevelData: SampleStorage.levelData[this.buildings['sampleStorage'].level], nextLevelData: SampleStorage.levelData[this.buildings['sampleStorage'].level + 1]}},
+            biomassFabricator: () => {return {level: this.buildings['biomassFabricator'].level, storedBiomass: Math.floor(this.buildings['biomassFabricator'].storedBiomass), currentLevelData: BiomassFabricator.levelData[this.buildings['biomassFabricator'].level], nextLevelData: BiomassFabricator.levelData[this.buildings['biomassFabricator'].level + 1]}}
         }
 
         return prepareDataMap[entityName]();

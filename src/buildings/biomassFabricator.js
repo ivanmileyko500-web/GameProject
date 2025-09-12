@@ -31,9 +31,9 @@ class BiomassFabricator extends Building {
     }
 
     update() {
-        this.storedBiomass += this.levelData[this.level].biomassPerUpdate;
-        if (this.storedBiomass > this.levelData[this.level].maxBiomass) {
-            this.storedBiomass = this.levelData[this.level].maxBiomass;
+        this.storedBiomass += BiomassFabricator.levelData[this.level].biomassPerUpdate;
+        if (this.storedBiomass > BiomassFabricator.levelData[this.level].maxBiomass) {
+            this.storedBiomass = BiomassFabricator.levelData[this.level].maxBiomass;
         }
     }
 
@@ -43,3 +43,5 @@ class BiomassFabricator extends Building {
         this.gameState.addResource('biomass', collectedBiomass);
     }
 }
+
+module.exports = BiomassFabricator;
