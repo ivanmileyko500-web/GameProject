@@ -13,65 +13,80 @@ function createWindow(name) {
       contextIsolation: false,
     },
   });
+  
   Menu.setApplicationMenu(null);
   win.webContents.openDevTools();
   win.loadFile('./src/ui/' + name + '.html');
+
+  windows[name] = win;
+
   if (name === 'index') {
-    win.on('close', () => {
+    win.on('closed', () => {
         app.quit();
     })
+  } else {
+    win.on('closed', () => {
+      delete windows[name];
+    })
   }
-  return win;
+}
+
+function safeSend(win, channel, ...args) {
+  if (win && !win.isDestroyed()) {
+    win.webContents.send(channel, ...args);
+  }
 }
 
 app.on('ready', () => {
+  // Инициализация игры и запуск периодических обновлений
   gameState.init().then(() => {
-    windows.index = createWindow('index');
-  });
-
-  ipcMain.on('ready', () => {
-    function formData() {
-      const preparedData = {};
-      for (let i = 0; i < gameState.entitiesToUpdate.length; i++) {
-        preparedData[gameState.entitiesToUpdate[i]] = gameState.prepareData(gameState.entitiesToUpdate[i]);
-      }
-      return preparedData;
-    }
-    windows.index.webContents.send('updateAll', formData());
+  createWindow('index');
     setInterval(() => {
       gameState.update();
-      windows.index.webContents.send('updateAll', formData());
+      safeSend(windows.playerBase, 'updateAll', {resources: gameState.prepareData('resources'), buildings: gameState.prepareData('buildings')});
+      safeSend(windows.index, 'updateAll');
     }, 1000);
   });
 
+  // === События на базе игрока ===
+
   ipcMain.on('callBuildingMethod', (event, buildingName, methodName, args) => {
     gameState.callBuildingMethod(buildingName, methodName, args);
-    windows.index.webContents.send('updateTarget', {
+    windows.playerBase.webContents.send('updateTarget', {
       buildingName: buildingName,
-      data: gameState.prepareData(buildingName),
+      [buildingName]: gameState.prepareData(buildingName),
       resources: gameState.prepareData('resources')
     });
   });
 
   ipcMain.on('constructBuilding', (event, buildingName) => {
     gameState.constructBuilding(buildingName);
-    windows.index.webContents.send('constructBuilding', {
+    windows.playerBase.webContents.send('constructBuilding', {
       buildingName: buildingName,
-      data: gameState.prepareData(buildingName),
+      [buildingName]: gameState.prepareData(buildingName),
       resources: gameState.prepareData('resources')
     });
   });
 
-  ipcMain.handle('fetchItemsData', async (event) => {
-    return gameState.items;
+  ipcMain.handle('fetchPlayerBaseData', async (event) => {
+    return {
+      items: gameState.prepareData('items'),
+      resources: gameState.prepareData('resources'),
+      buildings: gameState.prepareData('buildings')
+    };
   });
 
-  ipcMain.handle('fetchBuildingsData', async (event) => {
-    const buildingsData = {};
-    const buildingNames = Object.keys(gameState.buildings);
-    for (let i = 0; i < buildingNames.length; i++) {
-      buildingsData[buildingNames[i]] = gameState.prepareData(buildingNames[i]);
+  // === Глобальные события ===
+
+  ipcMain.on('openWindow', (event, windowName) => {
+    if (windows[windowName]) {
+      windows[windowName].focus();
+    } else {
+      createWindow(windowName);
     }
-    return buildingsData;
+  });
+
+  ipcMain.on('saveAndQuit', () => {
+    app.quit();
   });
 });

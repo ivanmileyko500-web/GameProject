@@ -217,8 +217,8 @@ class BuildingManager extends InteractiveAreaCreationTools {
         }
     }
 
-    updateTarget(data) {
-        this.buildings[data.buildingName].update(data.data);
+    updateTarget(buildingName, data) {
+        this.buildings[buildingName].update(data);
     }
 }
 
@@ -454,13 +454,23 @@ const resources = {
 }
 
 const windowLoading = {
-    itemsLoaded: false,
-    buildingsLoaded: false,
-    windowLoaded: false,
+    isContentLoaded: false,
+    isWindowLoaded: false,
+    isLoadingFinished: false,
 
-    checkAndInit() {
-        if (this.itemsLoaded && this.buildingsLoaded && this.windowLoaded) {
-            ipcRenderer.send('ready');
+    contentLoaded() {
+        this.isContentLoaded = true;
+        this.checkIsLoadingFinished();
+    },
+
+    windowLoaded() {
+        this.isWindowLoaded = true;
+        this.checkIsLoadingFinished();
+    },
+
+    checkIsLoadingFinished() {
+        if (this.isContentLoaded && this.isWindowLoaded) {
+            this.loadingFinished = true;
         }
     }
 }
@@ -523,36 +533,40 @@ const viewSwitcher = new ViewSwitcher(document.getElementById('column3'));
 const buildingManager = new BuildingManager(viewSwitcher, [3, 3], buildingsUiData);
 
 ipcRenderer.on('updateAll', (event, data) => {
-    buildingManager.updateAll(data);
-    resources.update(data.resources);
+    if (windowLoading.isLoadingFinished) {
+        buildingManager.updateAll(data.buildings);
+        resources.update(data.resources);
+    }
 });
 
 ipcRenderer.on('updateTarget', (event, data) => {
-    buildingManager.updateTarget(data);
+    buildingManager.updateTarget(data.buildingName, data[data.buildingName]);
     resources.update(data.resources);
 });
 
 ipcRenderer.on('constructBuilding', (event, data) => {
-    buildingManager.addBuilding(new buildingClasses[data.buildingName](data.data, buildingsUiData.get(data.buildingName)));
+    buildingManager.addBuilding(new buildingClasses[data.buildingName](data[data.buildingName], buildingsUiData.get(data.buildingName)));
     resources.update(data.resources);
 });
 
-ipcRenderer.invoke('fetchItemsData').then(data => {
-    //Регистрация предметов
-    windowLoading.itemsLoaded = true;
-    windowLoading.checkAndInit();
-});
+ipcRenderer.invoke('fetchPlayerBaseData').then(data => {
+    //Инициализация ресурсов
+    const resourcesData = data.resources;
+    resources.update(resourcesData);
 
-ipcRenderer.invoke('fetchBuildingsData').then(data => {
-    //Регистрация зданий
-    for (let buildingName in data) {
-        buildingManager.addBuilding(new buildingClasses[buildingName](data[buildingName], buildingsUiData.get(buildingName)));
+    //Инициализация зданий
+    const buildingsData = data.buildings;
+    for (let buildingName in buildingsData) {
+        buildingManager.addBuilding(new buildingClasses[buildingName](buildingsData[buildingName], buildingsUiData.get(buildingName)));
     }
-    windowLoading.buildingsLoaded = true;
-    windowLoading.checkAndInit();
+
+    //Инициализация предметов
+
+
+    //Завершение загрузки
+    windowLoading.contentLoaded();
 });
 
 window.onload = () => {
-    windowLoading.windowLoaded = true;
-    windowLoading.checkAndInit();
+    windowLoading.windowLoaded();
 }

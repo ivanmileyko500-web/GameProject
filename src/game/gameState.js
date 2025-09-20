@@ -67,15 +67,23 @@ class GameState {
 
     prepareData(entityName){
         const prepareDataMap = {
+            items: () => {return this.items},
             resources: () => {
-            let preparedData = {};
-            for (let key in this.resources) {
-                preparedData[key] = {count: this.resources[key].count, max: this.resources[key].capacity};
-            }
-            return preparedData;
+                let preparedData = {};
+                for (let key in this.resources) {
+                    preparedData[key] = {count: this.resources[key].count, max: this.resources[key].capacity};
+                }
+                return preparedData;
             },
             sampleStorage: () => {return {level: this.buildings['sampleStorage'].level, assignedSlots: this.buildings['sampleStorage'].assignedSlots, currentLevelData: SampleStorage.levelData[this.buildings['sampleStorage'].level], nextLevelData: SampleStorage.levelData[this.buildings['sampleStorage'].level + 1]}},
-            biomassFabricator: () => {return {level: this.buildings['biomassFabricator'].level, storedBiomass: Math.floor(this.buildings['biomassFabricator'].storedBiomass), currentLevelData: BiomassFabricator.levelData[this.buildings['biomassFabricator'].level], nextLevelData: BiomassFabricator.levelData[this.buildings['biomassFabricator'].level + 1]}}
+            biomassFabricator: () => {return {level: this.buildings['biomassFabricator'].level, storedBiomass: Math.floor(this.buildings['biomassFabricator'].storedBiomass), currentLevelData: BiomassFabricator.levelData[this.buildings['biomassFabricator'].level], nextLevelData: BiomassFabricator.levelData[this.buildings['biomassFabricator'].level + 1]}},
+            buildings: () => {
+                let preparedData = {};
+                for (let key in this.buildings) {
+                    preparedData[key] = prepareDataMap[key]();
+                }
+                return preparedData;
+            }
         }
 
         return prepareDataMap[entityName]();

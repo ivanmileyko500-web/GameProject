@@ -115,3 +115,17 @@ const enemyEffectList = new InteractiveScrollTable(
 const enemyEffectListTableHTML = enemyEffectList.interactiveArea.webElement.querySelector('table');
 enemyEffectListTableHTML.style.width = '200px';
 enemyEffectList.render(enemyEffectListContainer);
+
+const playerBaseButton = document.getElementById('player-base');
+playerBaseButton.addEventListener('click', () => {
+    ipcRenderer.send('openWindow', 'playerBase');
+});
+
+const saveAndQuitButton = document.getElementById('save-and-quit');
+saveAndQuitButton.addEventListener('click', () => {
+    ipcRenderer.send('saveAndQuit');
+});
+
+ipcRenderer.on('updateAll', () => {
+  //TODO update all  
+})
