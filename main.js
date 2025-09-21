@@ -68,15 +68,25 @@ app.on('ready', () => {
     });
   });
 
-  ipcMain.handle('fetchPlayerBaseData', async (event) => {
-    return {
-      items: gameState.prepareData('items'),
-      resources: gameState.prepareData('resources'),
-      buildings: gameState.prepareData('buildings')
-    };
+  // === События предметов ===
+
+  ipcMain.on('itemSlotChanged', (event, itemId, newSlotId) => {
+    
   });
 
   // === Глобальные события ===
+
+  ipcMain.handle('fetchGameData', async (event, windowName) => {
+    const gameData = {};
+    if (windowName === 'playerBase') {
+      gameData.items = gameState.prepareData('items');
+      gameData.resources = gameState.prepareData('resources');
+      gameData.buildings = gameState.prepareData('buildings');
+    } else if (windowName === 'index') {
+      gameData.items = gameState.prepareData('items');
+    }
+    return gameData;
+  });
 
   ipcMain.on('openWindow', (event, windowName) => {
     if (windows[windowName]) {

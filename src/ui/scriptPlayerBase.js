@@ -2,6 +2,9 @@ const { ipcRenderer } = require('electron');
 import {InventoryDragManager, Inventory, Item} from './modules/DragAndDrop.js';
 import InteractiveAreaCreationTools from './modules/InteractiveAreaCreationTools.js';
 import MouseleaveTracker from './modules/MouseleaveTracker.js';
+import genWebElementGenerator from './modules/genWebElementGenerator.js';
+
+// === Вспомогательные классы ===
 
 class MultiInventory {
     static switchButtonBackgroundColor = 'grey';
@@ -222,6 +225,8 @@ class BuildingManager extends InteractiveAreaCreationTools {
     }
 }
 
+// === Классы зданий ===
+
 class Building {
     constructor(buildingName, data, previewImagePath) {
         this.buildingName = buildingName;
@@ -399,6 +404,8 @@ class MutantCapsule extends Building {}
 class DNARegenerator extends Building {}
 class MidasMachine extends Building {}
     
+// === Подготовка ресурсов ===
+
 // TODO сделать финальный вариант графики, вынести в html css
 const resourcesContainer = document.createElement('div');
 resourcesContainer.style.width = '100%';
@@ -453,6 +460,10 @@ const resources = {
     }
 }
 
+resources.render(document.getElementById('column1-container2'));
+
+// === Подготовка объекта загрузки окна ===
+
 const windowLoading = {
     isContentLoaded: false,
     isWindowLoaded: false,
@@ -475,7 +486,7 @@ const windowLoading = {
     }
 }
 
-resources.render(document.getElementById('column1-container2'));
+// === Подготовка инвентарей ===
 
 const slotExample = document.createElement('div');
 slotExample.style.width = '28px';
@@ -484,14 +495,35 @@ slotExample.style.backgroundImage = 'url("images/slot.png")';
 slotExample.style.padding = '6px';
 const manager = InventoryDragManager.getInstance('mousedown');
 const genomContainer = document.getElementById('column2');
-const invMesh1 = Inventory.createInventoryUI(14, 7, slotExample);
-const inventory1 = new Inventory(manager, invMesh1);
-const invMesh2 = Inventory.createInventoryUI(15, 7, slotExample);
+
+const globalInventoryMesh = Inventory.createInventoryUI(
+    14, 7, 
+    {
+        slotExample: slotExample,
+    }
+);
+const globalInventory = new Inventory(
+    manager, 
+    globalInventoryMesh,
+    {
+        id: 'global',
+
+    }
+);
+
+const invMesh2 = Inventory.createInventoryUI(
+    15, 7, 
+    {
+        slotExample: slotExample
+    }
+);
 const inventory2 = new Inventory(manager, invMesh2);
 const multiInventory = new MultiInventory();
-multiInventory.addInventory('Inventory 1', inventory1);
+multiInventory.addInventory('Inventory 1', globalInventory);
 multiInventory.addInventory('Inventory 2', inventory2);
 multiInventory.render(genomContainer);
+
+// === Подготовка зданий ===
 
 const buildingNames = [
     'mutantUtilizer', 
@@ -532,6 +564,8 @@ BuildingManager.useCustomMouseleaveTracker(MouseleaveTracker)
 const viewSwitcher = new ViewSwitcher(document.getElementById('column3'));
 const buildingManager = new BuildingManager(viewSwitcher, [3, 3], buildingsUiData);
 
+// === События ===
+
 ipcRenderer.on('updateAll', (event, data) => {
     if (windowLoading.isLoadingFinished) {
         buildingManager.updateAll(data.buildings);
@@ -549,7 +583,7 @@ ipcRenderer.on('constructBuilding', (event, data) => {
     resources.update(data.resources);
 });
 
-ipcRenderer.invoke('fetchPlayerBaseData').then(data => {
+ipcRenderer.invoke('fetchGameData', 'playerBase').then(data => {
     //Инициализация ресурсов
     const resourcesData = data.resources;
     resources.update(resourcesData);
@@ -561,7 +595,17 @@ ipcRenderer.invoke('fetchPlayerBaseData').then(data => {
     }
 
     //Инициализация предметов
-
+    const itemsData = data.items;
+    for (let itemId in itemsData) {
+        const item = new Item (
+            genWebElementGenerator(),
+            itemId,
+            itemsData[itemId].inventoryId,
+            itemsData[itemId].slotId,
+            itemsData[itemId].gameData
+        )
+        manager.registerItem(item);
+    }
 
     //Завершение загрузки
     windowLoading.contentLoaded();

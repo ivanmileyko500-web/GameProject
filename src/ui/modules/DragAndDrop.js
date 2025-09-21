@@ -94,8 +94,8 @@ class InventoryDragManager extends DragManager {
     }
 
     registerItem(item) {
-        if (!item.inventoryId) {
-            throw new Error(`Item ${item.id} has no inventoryId`);   
+        if (!item.inventoryId || !this.inventories[item.inventoryId]) {
+            throw new Error(`Item ${item.id} has no inventory`);   
         }
         this.items[item.id] = item;
         if (item.slotId) {
@@ -142,7 +142,13 @@ class Inventory extends InteractiveAreaCreationTools {
         this.inventoryPadding = inventoryPadding;
     }
 
-    static createInventoryUI(rows, cols, slotExample = null) {
+    static createInventoryUI(
+        rows, 
+        cols, 
+        {  
+            slotExample = null,
+            onlyVisual = false
+        } = {}) {
         const grid = document.createElement('div');
         if (this.inventoryPadding === 'gap') {
             grid.style.padding = this.slotGap + 'px';
@@ -169,23 +175,41 @@ class Inventory extends InteractiveAreaCreationTools {
         grid.style.backgroundColor = this.inventoryBackgroundColor;
 
         if (slotExample) {
-            for (let i = 0; i < rows * cols; i++) {
-                const element = this.createInteractiveContainer(slotExample.cloneNode(true));
-                element.dataset.id = i;
-                element.dataset.type = 'slot';
-                grid.appendChild(element);
+            if (!onlyVisual) {
+                for (let i = 0; i < rows * cols; i++) {
+                    const element = this.createInteractiveContainer(slotExample.cloneNode(true));
+                    element.dataset.id = i;
+                    element.dataset.type = 'slot';
+                    grid.appendChild(element);
+                }   
+            } else {
+                for (let i = 0; i < rows * cols; i++) {
+                    const element = slotExample.cloneNode(true);
+                    grid.appendChild(element);
+                }   
             }
         } else {
-            for (let i = 0; i < rows * cols; i++) {
-                const element = this.createInteractiveContainer();
-                element.style.width = slotSize + 'px';
-                element.style.height = slotSize + 'px';
-                element.style.backgroundColor = this.slotBackgroundColor;
-                element.style.border = `${this.slotBorderSize}px solid ${this.slotBorderColor}`;
-                element.style.transition = '0.3s ease-in';
-                element.dataset.id = i;
-                element.dataset.type = 'slot';
-                grid.appendChild(element);
+            if (!onlyVisual) {
+                for (let i = 0; i < rows * cols; i++) {
+                    const element = this.createInteractiveContainer();
+                    element.style.width = slotSize + 'px';
+                    element.style.height = slotSize + 'px';
+                    element.style.backgroundColor = this.slotBackgroundColor;
+                    element.style.border = `${this.slotBorderSize}px solid ${this.slotBorderColor}`;
+                    element.style.transition = '0.3s ease-in';
+                    element.dataset.id = i;
+                    element.dataset.type = 'slot';
+                    grid.appendChild(element);
+                }
+            } else {
+                for (let i = 0; i < rows * cols; i++) {
+                    const element = document.createElement('div');
+                    element.style.width = slotSize + 'px';
+                    element.style.height = slotSize + 'px';
+                    element.style.backgroundColor = this.slotBackgroundColor;
+                    element.style.border = `${this.slotBorderSize}px solid ${this.slotBorderColor}`;
+                    grid.appendChild(element);
+                }
             }
         }
         return grid;
@@ -315,12 +339,14 @@ class Inventory extends InteractiveAreaCreationTools {
 }
 
 class Item {
-    constructor(webElement, id, inventoryId, slotId) {
+    constructor(webElement, id, inventoryId, slotId, gameData) {
         this.webElement = webElement;
         this.webElement.style.pointerEvents = 'none';
+        this.webElement.style.userSelect = 'none';
         this.id = id || crypto.randomUUID();
         this.inventoryId = inventoryId;
         this.slotId = slotId;
+        this.gameData = gameData
     }
 }
 

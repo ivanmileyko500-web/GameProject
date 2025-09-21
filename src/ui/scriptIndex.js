@@ -1,7 +1,8 @@
 const { ipcRenderer } = require('electron');
+import {InventoryDragManager, Inventory, Item} from './modules/DragAndDrop.js';
 import InteractivePageTable from "./modules/InteractivePageTable.js";
 import InteractiveScrollTable from "./modules/InteractiveScrollTable.js";
-import {InventoryDragManager, Inventory, Item} from './modules/DragAndDrop.js';
+import genWebElementGenerator from './modules/genWebElementGenerator.js';
 
 const info = document.getElementById('column1-container1');
 info.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
@@ -17,9 +18,20 @@ slotExample.style.padding = '6px'
 const manager = InventoryDragManager.getInstance('mousedown');
 
 const genomContainer = document.getElementById('column2')
-const invMesh1 = Inventory.createInventoryUI(14, 7, slotExample);
-const inventory1 = new Inventory(manager, invMesh1);
-inventory1.render(genomContainer);
+const globalInventoryMesh = Inventory.createInventoryUI(
+    14, 7, 
+    {
+        slotExample: slotExample,
+    }
+);
+const globalInventory = new Inventory(
+    manager, 
+    globalInventoryMesh,
+    {
+        id: 'global'
+    }
+);
+globalInventory.render(genomContainer);
 
 const tableContainer = document.getElementById('column3-container1');
 const interactiveTable = new InteractivePageTable(
@@ -47,8 +59,16 @@ selectedGenomContainer.style.display = 'flex';
 selectedGenomContainer.style.justifyContent = 'center';
 selectedGenomContainer.style.alignItems = 'center';
 column3Container2.appendChild(selectedGenomContainer);
-const invMesh2 = Inventory.createInventoryUI(2, 5, slotExample);
-const inventory2 = new Inventory(manager, invMesh2);
+const invMesh2 = Inventory.createInventoryUI(
+    2, 5, 
+    {
+        slotExample: slotExample,
+    }
+);
+const inventory2 = new Inventory(
+    manager, 
+    invMesh2
+);
 inventory2.render(selectedGenomContainer);
 const effectListContainer = document.createElement('div');
 effectListContainer.style.width = '100%';
@@ -95,9 +115,14 @@ enemyGenomContainer.style.display = 'flex';
 enemyGenomContainer.style.justifyContent = 'center';
 enemyGenomContainer.style.alignItems = 'center';
 column4Container2.appendChild(enemyGenomContainer);
-const invMesh3 = Inventory.createInventoryUI(2, 5, slotExample);
-const enemyInventory = new Inventory(manager, invMesh3);
-enemyInventory.render(enemyGenomContainer);
+const enemyInventory = Inventory.createInventoryUI(
+    2, 5, 
+    {
+        slotExample: slotExample,
+        onlyVisual: true
+    }
+);
+enemyGenomContainer.appendChild(enemyInventory);
 const enemyEffectListContainer = document.createElement('div');
 enemyEffectListContainer.style.width = '100%';
 enemyEffectListContainer.style.height = '100px';
@@ -124,6 +149,21 @@ playerBaseButton.addEventListener('click', () => {
 const saveAndQuitButton = document.getElementById('save-and-quit');
 saveAndQuitButton.addEventListener('click', () => {
     ipcRenderer.send('saveAndQuit');
+});
+
+ipcRenderer.invoke('fetchGameData', 'index').then(data => {
+    //Инициализация предметов
+    const itemsData = data.items;
+    for (let itemId in itemsData) {
+        const item = new Item (
+            genWebElementGenerator(),
+            itemId,
+            itemsData[itemId].inventoryId,
+            itemsData[itemId].slotId,
+            itemsData[itemId].gameData
+        )
+        manager.registerItem(item);
+    }
 });
 
 ipcRenderer.on('updateAll', () => {

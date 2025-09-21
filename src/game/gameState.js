@@ -47,16 +47,15 @@ class GameState {
         }
 
         //Инициализация предметов
-        // let itemsData = await this.databaseManager.getData('items_data');
-        // for (let i = 0; i < itemsData.length; i++) {
-        //     this.items[itemsData[i].id] = {
-        //         'id': itemsData[i].id,
-        //         'inventoryId': itemsData[i].inventory_id,
-        //         'slotId': itemsData[i].slot_id,
-        //         'imgFileName': itemsData[i].img_file_name,
-        //         'properties': JSON.parse(itemsData[i].data)
-        //     }
-        // }
+        let itemsData = await this.databaseManager.getData('items_data');
+        for (let i = 0; i < itemsData.length; i++) {
+            this.items[itemsData[i].id] = {
+                'id': itemsData[i].id,
+                'inventoryId': itemsData[i].inventory_id,
+                'slotId': itemsData[i].slot_id,
+                'gameData': JSON.parse(itemsData[i].game_data)
+            }
+        }
     }
 
     update() {
