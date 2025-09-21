@@ -1,3 +1,10 @@
+@font-face {
+    font-family: 'Monocraft';
+    src: url('font/Monocraft.ttc') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
 :root {
     --border-size: 2px;
     --border1-color: rgb(159, 140, 121);
