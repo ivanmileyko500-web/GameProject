@@ -34,10 +34,10 @@ class InventoryDragManager extends DragManager {
                 delete this.inventories[this.draggedItem.inventoryId].items[this.draggedItem.slotId];
                 this.inventories[this.draggedItem.inventoryId].onTakeItem(this.draggedItem);
                 this.inventories[event.target.dataset.inventoryId].items[event.target.dataset.id] = this.draggedItem;
-                this.inventories[event.target.dataset.inventoryId].onDropItem(this.draggedItem);
+                this.inventories[event.target.dataset.inventoryId].onDropItem(this.draggedItem, event.target.dataset.id);
                 this.draggedItem.inventoryId = event.target.dataset.inventoryId;        
             } else { //Перемещение внутри одного инвентаря
-                this.inventories[this.draggedItem.inventoryId].onItemSlotChanged(this.draggedItem);
+                this.inventories[this.draggedItem.inventoryId].onItemSlotChanged(this.draggedItem, event.target.dataset.id);
                 delete this.inventories[this.draggedItem.inventoryId].items[this.draggedItem.slotId];
                 this.inventories[this.draggedItem.inventoryId].items[event.target.dataset.id] = this.draggedItem;
             }
@@ -87,7 +87,6 @@ class InventoryDragManager extends DragManager {
             this.handleCancelDrag();
         }
     }
-        
     
     registerInventory(inventory) {
         this.inventories[inventory.id] = inventory;
@@ -110,6 +109,34 @@ class InventoryDragManager extends DragManager {
                 delete this.items[item.id];
             }
         }
+    }
+
+    moveItem(itemId, newInventoryId, newSlotId, triggerEvents = false) {
+        if (!this.items[itemId]) {
+            throw new Error(`Item ${itemId} not found`);   
+        }
+
+        if (triggerEvents) {
+            //Вызов событий перед перемещением, добавить, если потребуется
+        } else {
+            const item = this.items[itemId];
+            this.deleteItem(item);
+            item.inventoryId = newInventoryId;
+            item.slotId = newSlotId;
+            this.registerItem(item);
+        }
+    }
+
+    getItem(itemId) {
+        return this.items[itemId];
+    }
+
+    deleteItem(item) {
+        if (typeof item !== 'object') {
+            item = this.getItem(item);
+        }
+        delete this.items[item.id];
+        this.inventories[item.inventoryId].removeItem(item);
     }
 }
 
@@ -223,10 +250,10 @@ class Inventory extends InteractiveAreaCreationTools {
             pickRequestConditionCallback = (item) => {return true},
             dropRequestConditionCallback = (item) => {return true},
             onTakeItem = (item) => {},
-            onDropItem = (item) => {},
+            onDropItem = (item, newSlotId) => {},
             onItemFocus = (item) => {}, 
             onItemUnfocus = (item) => {},
-            onItemSlotChanged = (item) => {}
+            onItemSlotChanged = (item, newSlotId) => {}
         } = {}
     ) {
         super();
@@ -343,7 +370,7 @@ class Item {
         this.webElement = webElement;
         this.webElement.style.pointerEvents = 'none';
         this.webElement.style.userSelect = 'none';
-        this.id = id || crypto.randomUUID();
+        this.id = id ?? crypto.randomUUID();
         this.inventoryId = inventoryId;
         this.slotId = slotId;
         this.gameData = gameData

@@ -156,6 +156,12 @@ class GameState {
             this.resources[key].capacity = resourceCapacity[key];
         }
     }
+
+    updateItemData(itemData) {
+        this.items[itemData.id].inventoryId = itemData.newInventoryId || this.items[itemData.id].inventoryId;
+        this.items[itemData.id].slotId = itemData.newSlotId || this.items[itemData.id].slotId;
+        this.items[itemData.id].gameData = itemData.newGameData || this.items[itemData.id].gameData;
+    }
 }
 
 module.exports = new GameState();

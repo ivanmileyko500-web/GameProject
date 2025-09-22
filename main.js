@@ -70,8 +70,15 @@ app.on('ready', () => {
 
   // === События предметов ===
 
-  ipcMain.on('itemSlotChanged', (event, itemId, newSlotId) => {
-    
+  ipcMain.on('moveItem', (event, windowName, itemId, newInventoryId, newSlotId) => {
+    const oldInventoryId = gameState.items[itemId].inventoryId;
+    gameState.updateItemData({id: itemId, newInventoryId: newInventoryId, newSlotId: newSlotId});
+    const sendPathMap = {
+      playerBase: 'index',
+      index: 'playerBase'
+    };
+    safeSend(windows[sendPathMap[windowName]], 'moveItem', {item: gameState.items[itemId], oldInventoryId: oldInventoryId});
+    console.log({item: gameState.items[itemId], oldInventoryId: oldInventoryId});
   });
 
   // === Глобальные события ===

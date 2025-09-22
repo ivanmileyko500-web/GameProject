@@ -507,7 +507,12 @@ const globalInventory = new Inventory(
     globalInventoryMesh,
     {
         id: 'global',
-
+        onItemSlotChanged: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'playerBase', item.id, 'global', newSlotId);
+        },
+        onDropItem: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'playerBase', item.id, 'global', newSlotId);
+        },
     }
 );
 
@@ -517,7 +522,19 @@ const invMesh2 = Inventory.createInventoryUI(
         slotExample: slotExample
     }
 );
-const inventory2 = new Inventory(manager, invMesh2);
+const inventory2 = new Inventory(
+    manager, 
+    invMesh2,
+    {
+        id: 'genProperties',
+        onItemSlotChanged: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'playerBase', item.id, 'genProperties', newSlotId);
+        },
+        onDropItem: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'playerBase', item.id, 'genProperties', newSlotId);
+        },
+    }
+);
 const multiInventory = new MultiInventory();
 multiInventory.addInventory('Inventory 1', globalInventory);
 multiInventory.addInventory('Inventory 2', inventory2);
@@ -565,6 +582,31 @@ const viewSwitcher = new ViewSwitcher(document.getElementById('column3'));
 const buildingManager = new BuildingManager(viewSwitcher, [3, 3], buildingsUiData);
 
 // === События ===
+
+ipcRenderer.on('moveItem', (event, props) => {
+    if (props.oldInventoryId === props.item.inventoryId) {
+        if (props.item.inventoryId === 'global') { //Перемещение внутри глобального инвентаря
+            manager.moveItem(props.item.id, props.item.inventoryId, props.item.slotId);
+        }
+    } else {
+        if (props.item.inventoryId === 'global') { //Перемещение в глобальный инвентарь
+            if (!manager.getItem(props.item.id)) {
+                const item = new Item (
+                    genWebElementGenerator(),
+                    props.item.id,
+                    props.item.inventoryId,
+                    props.item.slotId,
+                    props.item.gameData
+                )
+                manager.registerItem(item);
+            }
+        } else if (props.oldInventoryId === 'global') { //Перемещение из глобального инвентаря
+            if (manager.getItem(props.item.id)) {
+                manager.deleteItem(props.item.id);
+            }
+        }
+    }
+});
 
 ipcRenderer.on('updateAll', (event, data) => {
     if (windowLoading.isLoadingFinished) {

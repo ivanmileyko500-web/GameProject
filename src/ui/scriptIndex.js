@@ -28,7 +28,13 @@ const globalInventory = new Inventory(
     manager, 
     globalInventoryMesh,
     {
-        id: 'global'
+        id: 'global',
+        onItemSlotChanged: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'index', item.id, 'global', newSlotId);
+        },
+        onDropItem: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'index', item.id, 'global', newSlotId);
+        }
     }
 );
 globalInventory.render(genomContainer);
@@ -67,7 +73,16 @@ const invMesh2 = Inventory.createInventoryUI(
 );
 const inventory2 = new Inventory(
     manager, 
-    invMesh2
+    invMesh2,
+    {
+        id: 'mutantGenom',
+        onItemSlotChanged: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'index', item.id, 'mutantGenom', newSlotId);
+        },
+        onDropItem: (item, newSlotId) => {
+            ipcRenderer.send('moveItem', 'index', item.id, 'mutantGenom', newSlotId);
+        }
+    }
 );
 inventory2.render(selectedGenomContainer);
 const effectListContainer = document.createElement('div');
@@ -166,6 +181,31 @@ ipcRenderer.invoke('fetchGameData', 'index').then(data => {
     }
 });
 
+ipcRenderer.on('moveItem', (event, props) => {
+    if (props.oldInventoryId === props.item.inventoryId) {
+        if (props.item.inventoryId === 'global') { //Перемещение внутри глобального инвентаря
+            manager.moveItem(props.item.id, props.item.inventoryId, props.item.slotId);
+        }
+    } else {
+        if (props.item.inventoryId === 'global') { //Перемещение в глобальный инвентарь
+            if (!manager.getItem(props.item.id)) {
+                const item = new Item (
+                    genWebElementGenerator(),
+                    props.item.id,
+                    props.item.inventoryId,
+                    props.item.slotId,
+                    props.item.gameData
+                )
+                manager.registerItem(item);
+            }
+        } else if (props.oldInventoryId === 'global') { //Перемещение из глобального инвентаря
+            if (manager.getItem(props.item.id)) {
+                manager.deleteItem(props.item.id);
+            }
+        }
+    }
+});
+
 ipcRenderer.on('updateAll', () => {
   //TODO update all  
-})
+});
