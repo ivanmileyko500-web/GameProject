@@ -21,10 +21,12 @@ export default class InteractiveAreaCreationTools {
             throw new Error('InteractiveAreaCreationTools: At least one of hoverable or clickable must be true.');
         }
 
-        const interactiveElements = area.querySelectorAll('[data-interactive-area-element]');
+        const interactiveElements = [...area.querySelectorAll('[data-interactive-area-element]')];
+        const interactiveAreaWebElement = document.createElement('div');
+        interactiveAreaWebElement.appendChild(area);
         const interactiveArea = {
             //Константы
-            webElement: area,
+            webElement: interactiveAreaWebElement,
             interactiveElements: interactiveElements,
 
             //Переменные
@@ -41,6 +43,10 @@ export default class InteractiveAreaCreationTools {
             clickCallback: (element) => {},
 
             //Методы
+            replaceContent(content) {
+                this.webElement.replaceChildren(content);
+                this.interactiveElements = [...this.webElement.querySelectorAll('[data-interactive-area-element]')];
+            },
             render(container) {container.appendChild(this.webElement);},
             remove() {this.webElement.remove();}
         }

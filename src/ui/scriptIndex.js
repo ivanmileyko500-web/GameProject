@@ -9,6 +9,14 @@ info.style.backgroundColor = 'rgba(0, 0, 0, 0.9)';
 info.style.color = 'aliceblue';
 info.innerHTML = 'Description:' + '<br>' + 'Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.';
 
+const scrollTableStyle = `
+    width: 200px;
+`
+const pageTableStyle = `
+    color: aliceblue;
+    margin-bottom: 10px;
+`
+
 const slotExample = document.createElement('div');
 slotExample.style.width = '28px';
 slotExample.style.height = '28px';
@@ -48,9 +56,7 @@ const interactiveTable = new InteractivePageTable(
         unfocusCallback: (element) => {element.style.backgroundColor = 'transparent'}
     }
 );
-const tableHTML = interactiveTable.interactiveArea.webElement.querySelector('table');
-tableHTML.style.color = 'aliceblue';
-tableHTML.style.marginBottom = '10px';
+interactiveTable.setTableStyle(pageTableStyle);
 interactiveTable.paginationContainer.style.color = 'aliceblue';
 interactiveTable.paginationContainer.style.width = '200px';
 interactiveTable.render(tableContainer);
@@ -99,8 +105,7 @@ const effectList = new InteractiveScrollTable(
         unfocusCallback: (element) => {element.style.backgroundColor = 'transparent'}
     }
 );
-const effectListTableHTML = effectList.interactiveArea.webElement.querySelector('table');
-effectListTableHTML.style.width = '200px';
+effectList.setTableStyle(scrollTableStyle);
 effectList.render(effectListContainer);
 
 const enemyStatsContainer = document.getElementById('column4-container1');
@@ -113,9 +118,7 @@ const enemyStatsInteractiveTable = new InteractivePageTable(
         unfocusCallback: (element) => {element.style.backgroundColor = 'transparent'}
     }  
 );
-const enemyStatsTableHTML = enemyStatsInteractiveTable.interactiveArea.webElement.querySelector('table');
-enemyStatsTableHTML.style.color = 'aliceblue';
-enemyStatsTableHTML.style.marginBottom = '10px';
+enemyStatsInteractiveTable.setTableStyle(pageTableStyle);
 enemyStatsInteractiveTable.paginationContainer.style.color = 'aliceblue';
 enemyStatsInteractiveTable.paginationContainer.style.width = '200px';
 enemyStatsInteractiveTable.render(enemyStatsContainer);
@@ -152,8 +155,7 @@ const enemyEffectList = new InteractiveScrollTable(
         unfocusCallback: (element) => {element.style.backgroundColor = 'transparent'}
     }
 );
-const enemyEffectListTableHTML = enemyEffectList.interactiveArea.webElement.querySelector('table');
-enemyEffectListTableHTML.style.width = '200px';
+enemyEffectList.setTableStyle(scrollTableStyle);
 enemyEffectList.render(enemyEffectListContainer);
 
 const playerBaseButton = document.getElementById('player-base');

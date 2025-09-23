@@ -14,11 +14,7 @@ export default class InteractiveTable extends InteractiveAreaCreationTools {
             cell: { customCellCreator: InteractiveTable.createInteractiveContainer }
         }
 
-        const tableContainer = document.createElement('div');
-        const table = tableFromArrayCreationTools.createTable(data, createTableSettings[tableInteractiveType]);
-        tableContainer.appendChild(table);
-
-        return tableContainer;
+        return tableFromArrayCreationTools.createTable(data, createTableSettings[tableInteractiveType]);
     }
 
     constructor (
@@ -39,11 +35,17 @@ export default class InteractiveTable extends InteractiveAreaCreationTools {
         this.tableInteractiveType = tableInteractiveType;
         this.firstWisibleRowIndex = firstWisibleRowIndex;
         this.interactiveArea = undefined;
+        this.tableStyle = undefined;
         this.focusCallback = focusCallback;
         this.unfocusCallback = unfocusCallback;
         this.clickCallback = clickCallback;
 
         this.init(hoverable, clickable);
+    }
+
+    setTableStyle(styleText) {
+        this.tableStyle = styleText;
+        this.replaceTableContent(this.getDataToDisplay());
     }
 
     getDataToDisplay() {
@@ -57,7 +59,9 @@ export default class InteractiveTable extends InteractiveAreaCreationTools {
     }
 
     init(hoverable, clickable) {
-        this.interactiveArea = InteractiveTable.createInteractiveArea(InteractiveTable.arrayToTable(this.getDataToDisplay(), this.tableInteractiveType), hoverable, clickable);
+        const table = InteractiveTable.arrayToTable(this.getDataToDisplay(), this.tableInteractiveType);
+        table.style.cssText = this.tableStyle;
+        this.interactiveArea = InteractiveTable.createInteractiveArea(table, hoverable, clickable);
 
         if (hoverable) {
             this.interactiveArea.focusCallback = this.focusCallback;
@@ -69,14 +73,9 @@ export default class InteractiveTable extends InteractiveAreaCreationTools {
     }
 
     replaceTableContent(dataToDisplay) {
-        const table = this.interactiveArea.webElement.querySelector('table');
-        while (table.firstChild) {
-            table.firstChild.remove();
-        }
-        const newTable = InteractiveTable.arrayToTable(dataToDisplay, this.tableInteractiveType).querySelector('table');
-        while (newTable.firstChild) {
-            table.appendChild(newTable.firstChild);   
-        }
+        const table = InteractiveTable.arrayToTable(dataToDisplay, this.tableInteractiveType);
+        table.style.cssText = this.tableStyle;
+        this.interactiveArea.replaceContent(table);
 
         if (this.interactiveArea.focusedElement) {
             const event = new MouseEvent ('mousemove', {

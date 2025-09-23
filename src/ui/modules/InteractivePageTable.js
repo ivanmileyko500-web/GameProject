@@ -25,23 +25,24 @@ export default class InteractivePageTable extends InteractiveTable {
         });
 
         this.currentPage = currentPage;
-        this.paginationContainer = undefined;
+        this.tableContainer = document.createElement('div');
+        this.paginationContainer = document.createElement('div');
         this.setup();
     }
 
     setup() {
-        this.interactiveArea.webElement.style.display = 'flex';
-        this.interactiveArea.webElement.style.flexDirection = 'column';
-        this.paginationContainer = document.createElement('div');
+        this.tableContainer.style.display = 'flex';
+        this.tableContainer.style.flexDirection = 'column';
         this.paginationContainer.style.display = 'flex';
         this.paginationContainer.style.justifyContent = 'space-around';
-        this.interactiveArea.webElement.appendChild(this.paginationContainer);
+        this.interactiveArea.render(this.tableContainer);
+        this.tableContainer.appendChild(this.paginationContainer);
 
         this.createPagination();
     }
 
     createPagination() {
-        this.paginationContainer.innerHTML = ''; // Очистим контейнер перед добавлением
+        this.paginationContainer.innerHTML = '';
 
         const prevButton = document.createElement('button');
         prevButton.textContent = 'Prev';
@@ -75,5 +76,9 @@ export default class InteractivePageTable extends InteractiveTable {
         this.firstWisibleRowIndex = (InteractivePageTable.wisibleRows * (this.currentPage - 1));
         this.replaceTableContent(this.getDataToDisplay());
         this.createPagination();
+    }
+
+    render(container) {
+        container.appendChild(this.tableContainer);
     }
 }
