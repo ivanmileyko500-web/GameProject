@@ -78,7 +78,6 @@ app.on('ready', () => {
       index: 'playerBase'
     };
     safeSend(windows[sendPathMap[windowName]], 'moveItem', {item: gameState.items[itemId], oldInventoryId: oldInventoryId});
-    console.log({item: gameState.items[itemId], oldInventoryId: oldInventoryId});
   });
 
   // === Глобальные события ===

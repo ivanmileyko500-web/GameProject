@@ -493,20 +493,27 @@ slotExample.style.width = '28px';
 slotExample.style.height = '28px';
 slotExample.style.backgroundImage = 'url("images/slot.png")';
 slotExample.style.padding = '6px';
+Inventory.setVisualParams({
+    slotExample: slotExample
+});
 const manager = InventoryDragManager.getInstance('mousedown');
 const genomContainer = document.getElementById('column2');
 
 const globalInventoryMesh = Inventory.createInventoryUI(
     14, 7, 
-    {
-        slotExample: slotExample,
-    }
 );
 const globalInventory = new Inventory(
     manager, 
     globalInventoryMesh,
     {
         id: 'global',
+        dropRequestConditionCallback: (item) => {
+            if (item.gameData.type !== 'gen') {
+                return false;
+            } else {
+                return true;
+            }
+        },
         onItemSlotChanged: (item, newSlotId) => {
             ipcRenderer.send('moveItem', 'playerBase', item.id, 'global', newSlotId);
         },
@@ -518,15 +525,19 @@ const globalInventory = new Inventory(
 
 const invMesh2 = Inventory.createInventoryUI(
     15, 7, 
-    {
-        slotExample: slotExample
-    }
 );
 const inventory2 = new Inventory(
     manager, 
     invMesh2,
     {
         id: 'genProperties',
+        dropRequestConditionCallback: (item) => {
+            if (item.gameData.type !== 'property') {
+                return false;
+            } else {
+                return true;
+            }
+        },
         onItemSlotChanged: (item, newSlotId) => {
             ipcRenderer.send('moveItem', 'playerBase', item.id, 'genProperties', newSlotId);
         },

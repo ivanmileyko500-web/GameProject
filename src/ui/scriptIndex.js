@@ -16,21 +16,20 @@ const pageTableStyle = `
     color: aliceblue;
     margin-bottom: 10px;
 `
-
 const slotExample = document.createElement('div');
 slotExample.style.width = '28px';
 slotExample.style.height = '28px';
 slotExample.style.backgroundImage = 'url("images/slot.png")';
 slotExample.style.padding = '6px'
+Inventory.setVisualParams({
+    slotExample: slotExample
+})
 
 const manager = InventoryDragManager.getInstance('mousedown');
 
 const genomContainer = document.getElementById('column2')
 const globalInventoryMesh = Inventory.createInventoryUI(
     14, 7, 
-    {
-        slotExample: slotExample,
-    }
 );
 const globalInventory = new Inventory(
     manager, 
@@ -73,9 +72,6 @@ selectedGenomContainer.style.alignItems = 'center';
 column3Container2.appendChild(selectedGenomContainer);
 const invMesh2 = Inventory.createInventoryUI(
     2, 5, 
-    {
-        slotExample: slotExample,
-    }
 );
 const inventory2 = new Inventory(
     manager, 
@@ -136,7 +132,6 @@ column4Container2.appendChild(enemyGenomContainer);
 const enemyInventory = Inventory.createInventoryUI(
     2, 5, 
     {
-        slotExample: slotExample,
         onlyVisual: true
     }
 );

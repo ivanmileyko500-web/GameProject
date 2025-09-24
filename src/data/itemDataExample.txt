@@ -1,0 +1,19 @@
+{
+    "id": "int, any",
+    "inventory_id": "string, any",
+    "slot_id": "int, any", 
+    "game_data": {
+        "name": "string, (generated)",
+        "type": "string, gen/property",
+        "properties": [
+            {
+                "name": "string, any",
+                "color": "string, red/green/blue",
+                "effectTarget": "string, anyStats/special",
+                "effect": "string, any"
+            }
+        ]
+    }
+}
+
+{"name": "Ax-b13", "type": "gen", "properties": [{"name": "Sharp Claws", "color": "red", "effectTarget": "damage", "effect": "+13"}, {"name": "Dense Skin", "color": "green", "effectTarget": "defence", "effect": "+4"}]}
