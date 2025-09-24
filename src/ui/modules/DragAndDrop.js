@@ -94,10 +94,11 @@ class InventoryDragManager extends DragManager {
 
     registerItem(item) {
         if (!item.inventoryId || !this.inventories[item.inventoryId]) {
-            throw new Error(`Item ${item.id} has no inventory`);   
+            console.warn(`Can't register item ${item.id} in inventory ${item.inventoryId} because there is no such inventory, item will be lost`);  
+            return; 
         }
         this.items[item.id] = item;
-        if (item.slotId) {
+        if (this.inventories[item.inventoryId].isSlotEmpty(item.slotId)) {
             this.inventories[item.inventoryId].pushItem(item);
         } else {
             const slotId = this.inventories[item.inventoryId].getFirstEmptySlotId();
@@ -142,6 +143,7 @@ class InventoryDragManager extends DragManager {
 
 class Inventory extends InteractiveAreaCreationTools {
     //Стандартные параметры визуализации
+    static slotExample = null;
     static slotBorderSize = 2;
     static slotContentSize = 32;
     static slotGap = 6;
@@ -152,6 +154,7 @@ class Inventory extends InteractiveAreaCreationTools {
 
     //Изменение параметров визуализации (не влияет на существующие инвентари)
     static setVisualParams({
+        slotExample = this.slotExample,
         slotBorderSize = this.slotBorderSize, 
         slotContentSize = this.slotContentSize, 
         slotGap = this.slotGap,
@@ -160,6 +163,7 @@ class Inventory extends InteractiveAreaCreationTools {
         inventoryBackgroundColor = this.inventoryBackgroundColor,
         inventoryPadding = this.inventoryPadding
     } = {}) {
+        this.slotExample = slotExample;
         this.slotBorderSize = slotBorderSize;
         this.slotContentSize = slotContentSize;
         this.slotGap = slotGap;
@@ -173,7 +177,7 @@ class Inventory extends InteractiveAreaCreationTools {
         rows, 
         cols, 
         {  
-            slotExample = null,
+            slotExample = this.slotExample,
             onlyVisual = false
         } = {}) {
         const grid = document.createElement('div');
@@ -337,6 +341,10 @@ class Inventory extends InteractiveAreaCreationTools {
         return this.items[slotId];
     }
 
+    isSlotEmpty(slotId) {
+        return !this.items[slotId] && this.slots[slotId];
+    }
+
     getFirstEmptySlotId() {
         for (let slot of this.interactiveArea.interactiveElements) {
             if (!this.items[slot.dataset.id]) {
@@ -344,6 +352,24 @@ class Inventory extends InteractiveAreaCreationTools {
             }
         }
         return null;
+    }
+
+    resize(rows, cols, {slotExample = Inventory.slotExample} = {}) {
+        const newGrid = Inventory.createInventoryUI(rows, cols, slotExample);
+        const items = Object.values(this.items)
+        for (let item of items) {
+            this.manager.deleteItem(item);   
+        }
+        this.slots = {};
+        this.interactiveArea.replaceContent(newGrid);
+        const slots = this.interactiveArea.interactiveElements;
+        for (let slot of slots) {
+            slot.dataset.inventoryId = this.id;
+            this.slots[slot.dataset.id] = slot;
+        };
+        for (let item of items) {
+            this.manager.registerItem(item);
+        }
     }
 
     pushItem(item) {
