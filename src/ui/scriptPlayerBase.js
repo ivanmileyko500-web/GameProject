@@ -191,6 +191,9 @@ class BuildingManager extends InteractiveAreaCreationTools {
                 }
             }
         };
+        interactiveGrid.webElement.style.width = '100%';
+        interactiveGrid.webElement.style.height = '100%';
+        
         //TODO добавить вывод и скрытие описания
         interactiveGrid.focusCallback = (element) => {};
         interactiveGrid.unfocusCallback = (element) => {};
@@ -371,6 +374,7 @@ class BiomassFabricator extends Building {
 
     setupInterface() {
         if (this.data.nextLevelData) this.interfaceUI.appendChild(this.upgradeButton);
+        this.biomassCounter.textContent = `${data.storedBiomass}/${data.currentLevelData.maxBiomass}`;
         this.interfaceUI.appendChild(this.biomassCounter);
 
         const collectButton = document.createElement("button");
@@ -481,7 +485,7 @@ const windowLoading = {
 
     checkIsLoadingFinished() {
         if (this.isContentLoaded && this.isWindowLoaded) {
-            this.loadingFinished = true;
+            this.isLoadingFinished = true;
         }
     }
 }
